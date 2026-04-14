@@ -10,13 +10,13 @@ import android.util.Log
 
 /*
  * TV.vin CloudStream Eklentisi
- *
+ * 
  * API endpoint'leri büyük ihtimalle şunlardır:
- *   POST /api/login         → { phone, password }    → token / cookie
- *   GET  /api/channels      → kanal listesi
- *   GET  /api/channel/{id}  → kanal detayı + stream url
- *
- * Eğer çalışmazsa tarayıcıda F12 → Network → XHR sekmesini aç,
+ *   POST /api/login      - { phone, password }   -> token / cookie
+ *   GET  /api/channels   - kanal listesi
+ *   GET  /api/channel/{id} - kanal detayı + stream url
+ * 
+ * Eğer çalışmazsa tarayıcıda F12 -> Network -> XHR sekmesini aç,
  * siteye giriş yap ve kanallardan birine tıkla. Gelen isteklere bakarak
  * aşağıdaki LOGIN_ENDPOINT ve CHANNELS_ENDPOINT'i güncelle.
  */
@@ -29,72 +29,69 @@ class TvVinProvider : MainAPI() {
     override var lang       = "tr"
     override val supportedTypes = setOf(TvType.Live)
 
-    // ─── Ayarlar ──────────────────────────────────────────────────────────────
-    private val phone    get() = settingsForProvider.getString("phone",    "")?.trim() ?: ""
-    private val password get() = settingsForProvider.getString("password", "")?.trim() ?: ""
+    // —— Ayarlar (Kullanıcı bilgileri doğrudan eklendi) ——
+    private val phone    = "3125622585"
+    private val password = "Macizle123"
 
     // Oturum token'ı bellekte saklanır (uygulama yeniden başlayana kadar)
-    private var authToken: String?  = null
-    private var sessionId: String?  = null
+    private var authToken: String? = null
+    private var sessionId: String? = null
 
     companion object {
-        // ⚠️ Eğer bunlar farklıysa aşağıyı güncelle ─────────────────────────
+        // ⚠️ Eğer bunlar farklıysa aşağıyı güncelle ————————————————————————
         const val LOGIN_ENDPOINT    = "/api/login"
         const val CHANNELS_ENDPOINT = "/api/channels"
-
+        
         // Alternatif olarak deneyebilirsin:
         // const val LOGIN_ENDPOINT    = "/login"
         // const val CHANNELS_ENDPOINT = "/channels"
-        // ─────────────────────────────────────────────────────────────────────
+        // ——————————————————————————————————————————————————————————————————
     }
 
-    // ─── Data Sınıfları ───────────────────────────────────────────────────────
+    // —— Data Sınıfları ——————————————————————————————————————————————————————
 
     data class LoginResponse(
-        @JsonProperty("token")      val token:   String? = null,
-        @JsonProperty("auth_token") val authToken: String? = null,
+        @JsonProperty("token")       val token: String? = null,
+        @JsonProperty("auth_token")  val authToken: String? = null,
         @JsonProperty("access_token") val accessToken: String? = null,
-        @JsonProperty("session_id") val sessionId: String? = null,
-        @JsonProperty("success")    val success: Boolean? = null,
-        @JsonProperty("status")     val status:  Int? = null
+        @JsonProperty("session_id")  val sessionId: String? = null,
+        @JsonProperty("success")     val success: Boolean? = null,
+        @JsonProperty("status")      val status: Int? = null
     )
 
     data class ChannelItem(
-        @JsonProperty("id")       val id:     Any? = null,
-        @JsonProperty("name")     val name:   String? = null,
-        @JsonProperty("title")    val title:  String? = null,
-        @JsonProperty("slug")     val slug:   String? = null,
-        @JsonProperty("url")      val url:    String? = null,
-        @JsonProperty("logo")     val logo:   String? = null,
-        @JsonProperty("image")    val image:  String? = null,
-        @JsonProperty("thumbnail") val thumbnail: String? = null,
-        @JsonProperty("stream_url") val streamUrl: String? = null,
-        @JsonProperty("category") val category: String? = null,
-        @JsonProperty("group")    val group:  String? = null
+        @JsonProperty("id")          val id:      Any? = null,
+        @JsonProperty("name")        val name:    String? = null,
+        @JsonProperty("title")       val title:   String? = null,
+        @JsonProperty("slug")        val slug:    String? = null,
+        @JsonProperty("url")         val url:     String? = null,
+        @JsonProperty("logo")        val logo:    String? = null,
+        @JsonProperty("image")       val image:   String? = null,
+        @JsonProperty("thumbnail")   val thumbnail: String? = null,
+        @JsonProperty("stream_url")  val streamUrl: String? = null,
+        @JsonProperty("category")    val category: String? = null,
+        @JsonProperty("group")       val group:    String? = null
     )
 
     data class ChannelListResponse(
-        @JsonProperty("channels")  val channels: List<ChannelItem>? = null,
-        @JsonProperty("data")      val data:     List<ChannelItem>? = null,
-        @JsonProperty("items")     val items:    List<ChannelItem>? = null,
-        @JsonProperty("results")   val results:  List<ChannelItem>? = null
+        @JsonProperty("channels")    val channels: List<ChannelItem>? = null,
+        @JsonProperty("data")        val data:     List<ChannelItem>? = null,
+        @JsonProperty("items")       val items:    List<ChannelItem>? = null,
+        @JsonProperty("results")     val results:  List<ChannelItem>? = null
     )
 
     data class StreamResponse(
-        @JsonProperty("stream_url") val streamUrl: String? = null,
-        @JsonProperty("url")        val url:       String? = null,
-        @JsonProperty("hls_url")    val hlsUrl:    String? = null,
-        @JsonProperty("m3u8")       val m3u8:      String? = null,
-        @JsonProperty("source")     val source:    String? = null
+        @JsonProperty("stream_url")  val streamUrl: String? = null,
+        @JsonProperty("url")         val url:       String? = null,
+        @JsonProperty("hls_url")     val hlsUrl:    String? = null,
+        @JsonProperty("m3u8")        val m3u8:      String? = null
     )
 
-    // ─── Oturum Açma ──────────────────────────────────────────────────────────
+    // —— Giriş Yapma Fonksiyonu ——————————————————————————————————————————————
 
     private suspend fun login(): Boolean {
         if (phone.isEmpty() || password.isEmpty()) {
-            throw ErrorLoadingException(
-                "Lütfen TV.vin kullanıcı bilgilerini eklenti ayarlarından girin (Ayarlar → TV.vin)."
-            )
+            throw ErrorLoadingException("Lütfen TV.vin kullanıcı bilgilerini eklenti ayarlarından girin (Ayarlar -> TV.vin).")
         }
 
         Log.d("TvVin", "Giriş yapılıyor: $phone")
@@ -116,38 +113,34 @@ class TvVinProvider : MainAPI() {
 
             if (response.isSuccessful) {
                 val parsed = response.parsedSafe<LoginResponse>()
-
+                
                 // Token'ı bul (farklı isimlerde gelebilir)
-                authToken = parsed?.token
-                    ?: parsed?.authToken
-                    ?: parsed?.accessToken
+                authToken = parsed?.token 
+                         ?: parsed?.authToken 
+                         ?: parsed?.accessToken
 
                 // Cookie tabanlı oturum varsa onu al
                 sessionId = response.cookies["session_id"]
-                    ?: response.cookies["PHPSESSID"]
-                    ?: response.cookies["laravel_session"]
-                    ?: response.cookies["ci_session"]
+                         ?: response.cookies["PHPSESSID"]
+                         ?: response.cookies["laravel_session"]
+                         ?: response.cookies["ci_session"]
 
-                val success = authToken != null || sessionId != null ||
-                              (parsed?.success == true) || (parsed?.status == 1)
+                val success = authToken != null || sessionId != null || 
+                             (parsed?.success == true) || (parsed?.status == 1)
 
-                Log.d("TvVin", "Giriş sonucu: success=$success, token=$authToken, session=$sessionId")
+                Log.d("TvVin", "Giriş sonucu: $success, token=$authToken, session=$sessionId")
                 return success
             }
-
+            
             // Yöntem 2: Form data ile dene (bazı siteler form ister)
             val formResponse = app.post(
                 url = "$mainUrl$LOGIN_ENDPOINT",
                 data = mapOf(
                     "phone"    to phone,
                     "password" to password
-                ),
-                headers = mapOf(
-                    "Accept" to "application/json, text/html, */*",
-                    "X-Requested-With" to "XMLHttpRequest"
                 )
             )
-
+            
             sessionId = formResponse.cookies.values.firstOrNull()
             return formResponse.isSuccessful
 
@@ -172,7 +165,7 @@ class TvVinProvider : MainAPI() {
         return sessionId?.let { mapOf("session_id" to it) } ?: emptyMap()
     }
 
-    // ─── Ana Sayfa ────────────────────────────────────────────────────────────
+    // —— Ana Sayfa ——————————————————————————————————————————————————————————
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         // İlk yüklemede giriş yap
@@ -182,7 +175,7 @@ class TvVinProvider : MainAPI() {
         }
 
         val response = app.get(
-            url     = "$mainUrl$CHANNELS_ENDPOINT",
+            url = "$mainUrl$CHANNELS_ENDPOINT",
             headers = authHeaders(),
             cookies = authCookies()
         )
@@ -195,92 +188,60 @@ class TvVinProvider : MainAPI() {
         }
 
         val parsed = response.parsedSafe<ChannelListResponse>()
-        val rawList = parsed?.channels ?: parsed?.data ?: parsed?.items ?: parsed?.results
+        
+        // Farklı API yapılarına göre kanal listesini bul
+        val items = parsed?.channels ?: parsed?.data ?: parsed?.items ?: parsed?.results ?: emptyList()
 
-        if (rawList == null) {
-            Log.e("TvVin", "Kanal listesi parse edilemedi. Ham cevap: ${response.text.take(500)}")
-            throw ErrorLoadingException("Kanal listesi alınamadı.")
+        val homeItems = items.map { channel ->
+            LiveSearchResponse(
+                name = channel.name ?: channel.title ?: "Kanal",
+                url  = channel.id?.toString() ?: channel.slug ?: "",
+                apiName = this.name,
+                type = TvType.Live,
+                posterUrl = channel.logo ?: channel.image ?: channel.thumbnail
+            )
         }
 
-        // Kategorilere göre grupla
-        val grouped = rawList.groupBy { it.category ?: it.group ?: "Kanallar" }
-
-        val homePages = grouped.map { (category, channels) ->
-            val items = channels.mapNotNull { channel ->
-                val channelName = channel.name ?: channel.title ?: return@mapNotNull null
-                val channelUrl  = buildChannelUrl(channel)
-
-                newLiveSearchResponse(
-                    name      = channelName,
-                    url       = channelUrl,
-                    type      = TvType.Live
-                ) {
-                    this.posterUrl = channel.logo ?: channel.image ?: channel.thumbnail
-                }
-            }
-            HomePageList(category, items, isHorizontalImages = true)
-        }
-
-        return HomePageResponse(homePages)
+        return HomePageResponse(listOf(HomePageList("Canlı Kanallar", homeItems)))
     }
 
-    private fun buildChannelUrl(channel: ChannelItem): String {
-        return when {
-            channel.streamUrl != null -> channel.streamUrl
-            channel.url       != null -> channel.url
-            channel.slug      != null -> "$mainUrl/${channel.slug}"
-            channel.id        != null -> "$mainUrl/channel/${channel.id}"
-            else -> mainUrl
-        }
-    }
-
-    // ─── Arama ────────────────────────────────────────────────────────────────
+    // —— Arama (Opsiyonel) ———————————————————————————————————————————————————
 
     override suspend fun search(query: String): List<SearchResponse> {
-        if (authToken == null && sessionId == null) login()
+        // Ana sayfadaki tüm kanalları çekip filtreleyelim
+        val mainPage = getMainPage(1, MainPageRequest("Search", ""))
+        return mainPage.list.flatMap { it.list }.filter { 
+            it.name.contains(query, ignoreCase = true) 
+        }
+    }
 
-        // Kanal listesi üzerinden lokal arama
+    // —— Kanal Detayı ve Yayın URL'si ————————————————————————————————————————
+
+    override suspend fun load(url: String): LoadResponse {
+        // url burada kanalın ID'si veya slug'ıdır
+        val channelUrl = "$mainUrl/api/channel/$url"
+        
         val response = app.get(
-            url     = "$mainUrl$CHANNELS_ENDPOINT",
+            url = channelUrl,
             headers = authHeaders(),
             cookies = authCookies()
         )
 
-        val parsed  = response.parsedSafe<ChannelListResponse>()
-        val rawList = parsed?.channels ?: parsed?.data ?: parsed?.items ?: parsed?.results
-            ?: return emptyList()
+        val channel = response.parsedSafe<ChannelItem>()
+        val title   = channel?.name ?: channel?.title ?: "Canlı Yayın"
+        
+        // Eğer stream_url doğrudan kanal bilgisinde geliyorsa
+        val streamUrl = channel?.streamUrl
 
-        return rawList
-            .filter { (it.name ?: it.title ?: "").contains(query, ignoreCase = true) }
-            .mapNotNull { channel ->
-                val channelName = channel.name ?: channel.title ?: return@mapNotNull null
-                newLiveSearchResponse(
-                    name = channelName,
-                    url  = buildChannelUrl(channel),
-                    type = TvType.Live
-                ) {
-                    this.posterUrl = channel.logo ?: channel.image
-                }
-            }
-    }
-
-    // ─── Kanal Detayı ─────────────────────────────────────────────────────────
-
-    override suspend fun load(url: String): LoadResponse {
-        val channelName = url
-            .removeSuffix("/")
-            .substringAfterLast("/")
-            .replace("-", " ")
-            .replaceFirstChar { it.uppercase() }
-
-        return newLiveStreamLoadResponse(
-            name    = channelName,
-            url     = url,
-            dataUrl = url
+        return LiveStreamResponse(
+            name = title,
+            url  = url,
+            apiName = this.name,
+            dataUrl = channelUrl,
+            posterUrl = channel?.logo ?: channel?.image,
+            type = TvType.Live
         )
     }
-
-    // ─── Stream Linki ─────────────────────────────────────────────────────────
 
     override suspend fun loadLinks(
         data: String,
@@ -288,104 +249,29 @@ class TvVinProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        if (authToken == null && sessionId == null) login()
-
-        // Eğer data direkt bir .m3u8 URL'yse, o zaman onu kullan
-        if (data.contains(".m3u8") || data.contains("/hls/") || data.contains("/live/")) {
-            callback(
-                ExtractorLink(
-                    source   = name,
-                    name     = name,
-                    url      = data,
-                    referer  = mainUrl,
-                    quality  = Qualities.Unknown.value,
-                    isM3u8   = true,
-                    headers  = authHeaders()
-                )
-            )
-            return true
-        }
-
-        // Kanal sayfasından stream URL'yi çek
+        // data burada kanalın API URL'sidir
         val response = app.get(
-            url     = data,
+            url = data,
             headers = authHeaders(),
             cookies = authCookies()
         )
-
-        if (!response.isSuccessful) {
-            Log.e("TvVin", "Stream isteği başarısız: ${response.code} - $data")
-            return false
-        }
-
-        // 1) JSON API ise parse et
-        val parsed = response.parsedSafe<StreamResponse>()
-        val streamUrl = parsed?.streamUrl ?: parsed?.url ?: parsed?.hlsUrl ?: parsed?.m3u8 ?: parsed?.source
+        
+        val channel = response.parsedSafe<ChannelItem>()
+        val streamUrl = channel?.streamUrl
 
         if (streamUrl != null) {
-            callback(
+            callback.invoke(
                 ExtractorLink(
-                    source   = name,
-                    name     = name,
-                    url      = if (streamUrl.startsWith("http")) streamUrl else "$mainUrl$streamUrl",
-                    referer  = mainUrl,
-                    quality  = Qualities.Unknown.value,
-                    isM3u8   = streamUrl.contains(".m3u8"),
-                    headers  = authHeaders()
+                    source = this.name,
+                    name   = this.name,
+                    url    = streamUrl,
+                    referer = mainUrl,
+                    quality = Qualities.Unknown.value,
+                    isM3u8  = streamUrl.contains("m3u8")
                 )
             )
             return true
         }
-
-        // 2) HTML sayfasıysa m3u8 / stream URL ara
-        val html = response.text
-        val patterns = listOf(
-            Regex("""(https?://[^"'\s]+\.m3u8[^"'\s]*)"""),
-            Regex("""source\s*[:=]\s*['"]([^'"]+)['"]"""),
-            Regex("""file\s*:\s*['"]([^'"]+)['"]"""),
-            Regex("""stream_url\s*[:=]\s*['"]([^'"]+)['"]"""),
-            Regex("""hls_url\s*[:=]\s*['"]([^'"]+)['"]"""),
-            Regex("""["']url["']\s*:\s*["']([^"']+\.m3u8[^"']*)["']""")
-        )
-
-        for (pattern in patterns) {
-            val match = pattern.find(html)?.groupValues?.getOrNull(1)
-            if (!match.isNullOrBlank()) {
-                Log.d("TvVin", "Regex ile stream bulundu: $match")
-                callback(
-                    ExtractorLink(
-                        source   = name,
-                        name     = name,
-                        url      = if (match.startsWith("http")) match else "$mainUrl$match",
-                        referer  = mainUrl,
-                        quality  = Qualities.Unknown.value,
-                        isM3u8   = match.contains(".m3u8"),
-                        headers  = authHeaders()
-                    )
-                )
-                return true
-            }
-        }
-
-        Log.e("TvVin", "Stream URL bulunamadı. Sayfa: ${html.take(1000)}")
         return false
     }
-
-    // ─── Eklenti Ayarları (UI) ────────────────────────────────────────────────
-
-    override val settingsItems = listOf(
-        SettingsItem(
-            id           = "phone",
-            name         = "Telefon Numarası",
-            description  = "TV.vin hesabınızın telefon numarası (örn: 5551234567)",
-            type         = SettingsType.Text,
-            placeholder  = "5551234567"
-        ),
-        SettingsItem(
-            id          = "password",
-            name        = "Şifre",
-            description = "TV.vin hesabınızın şifresi",
-            type        = SettingsType.Password
-        )
-    )
 }
