@@ -1,0 +1,8 @@
+{
+    "name": "TvVin Repo",
+    "description": "TV.vin Canlı Yayın Eklentisi",
+    "manifestVersion": 1,
+    "pluginLists": [
+        "https://raw.githubusercontent.com/justemir84/thttps-raw.githubusercontent.com-Justemir84-TvVinRepo-main-repo.json/master/plugins.json"
+    ]
+}

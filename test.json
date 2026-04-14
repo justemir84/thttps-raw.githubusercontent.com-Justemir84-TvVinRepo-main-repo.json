@@ -1,8 +1,0 @@
-{
-  "name": "Testing repository",
-  "description": "Lorem ipsum",
-  "manifestVersion": 1,
-  "pluginLists": [
-    "https://raw.githubusercontent.com/recloudstream/TestPlugins/builds/plugins.json"
-  ]
-}

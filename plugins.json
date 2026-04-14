@@ -1,0 +1,12 @@
+[
+    {
+        "name": "TV.vin",
+        "url": "https://raw.githubusercontent.com/justemir84/thttps-raw.githubusercontent.com-Justemir84-TvVinRepo-main-repo.json/master/TvVinProvider.apk",
+        "version": 1,
+        "authors": ["TvVinDev"],
+        "description": "TV.vin canlı kanal eklentisi.",
+        "iconUrl": "https://tv.vin/favicon.ico",
+        "tvTypes": ["Live"],
+        "language": "tr"
+    }
+]
