@@ -31,7 +31,7 @@ class TvVinProvider : MainAPI() {
 
     // —— Ayarlar (Kullanıcı bilgileri doğrudan eklendi) ——
     private val phone    = "3125622585"
-    private val password = "Macizle123"
+    private val password = "Macizle123."
 
     // Oturum token'ı bellekte saklanır (uygulama yeniden başlayana kadar)
     private var authToken: String? = null
